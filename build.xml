@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <project name="zax" default="all">
-  
-  
+
+
   <property file="zax.properties"/>
   <!-- Uncomment the following property if no tests compilation is needed -->
-  <!-- 
+  <!--
   <property name="skip.tests" value="true"/>
    -->
-  
+
   <!-- Compiler options -->
-  
+
   <property name="compiler.debug" value="on"/>
   <property name="compiler.generate.no.warnings" value="off"/>
   <property name="compiler.args" value=""/>
@@ -37,60 +37,93 @@
     <include name="**/?*.dtd"/>
     <include name="**/?*.tld"/>
   </patternset>
-  
+
   <!-- Modules -->
-  
-  
+
+
   <!-- Module Zax -->
-  
+
   <dirname property="module.zax.basedir" file="${ant.file}"/>
-  
-  
-  
+
   <property name="compiler.args.zax" value="${compiler.args}"/>
-  
+
   <property name="zax.output.dir" value="${module.zax.basedir}/out/production/Zax"/>
   <property name="zax.testoutput.dir" value="${module.zax.basedir}/out/test/Zax"/>
-  
+  <property name="zax.output.jardir" value="${module.zax.basedir}/bin"/>
+
   <path id="zax.module.bootclasspath">
     <!-- Paths to be included in compilation bootclasspath -->
   </path>
-  
+
   <path id="zax.module.classpath"/>
-  
+
   <path id="zax.runtime.module.classpath">
     <pathelement location="${zax.output.dir}"/>
     <pathelement location="${zax.testoutput.dir}"/>
   </path>
-  
-  
+
+
   <patternset id="excluded.from.module.zax">
     <patternset refid="ignored.files"/>
   </patternset>
-  
+
   <patternset id="excluded.from.compilation.zax">
     <patternset refid="excluded.from.module.zax"/>
   </patternset>
-  
+
   <path id="zax.module.sourcepath">
     <dirset dir="${module.zax.basedir}">
       <include name="src"/>
     </dirset>
   </path>
-  
-  
-  <target name="compile.module.zax" depends="compile.module.zax.production,compile.module.zax.tests" description="Compile module Zax"/>
-  
-  <target name="compile.module.zax.production" description="Compile module Zax; production classes">
-    <mkdir dir="${zax.output.dir}"/>
-    <javac destdir="${zax.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
+
+
+  <target
+    name="compile.module.zax"
+    depends="compile.module.zax.jar, compile.module.zax.tests"
+    description="Compile module Zax"/>
+
+  <target
+    name="compile.module.zax.jar"
+    description="Build Zax jarfile"
+    depends="compile.module.zax.production">
+
+    <mkdir
+      dir="${zax.output.jardir}"/>
+
+    <jar
+      destfile="${zax.output.jardir}/zax.jar"
+      basedir="${zax.output.dir}">
+
+      <manifest>
+        <attribute
+          name="Main-Class"
+          value="com.zaxsoft.apps.zax.Zax"/>
+      </manifest>
+    </jar>
+  </target>
+
+  <target
+    name="compile.module.zax.production"
+    description="Compile module Zax; production classes">
+
+    <mkdir
+      dir="${zax.output.dir}"/>
+
+    <javac
+      destdir="${zax.output.dir}"
+      debug="${compiler.debug}"
+      nowarn="${compiler.generate.no.warnings}"
+      memorymaximumsize="${compiler.max.memory}"
+      fork="true">
+
       <compilerarg line="${compiler.args.zax}"/>
       <bootclasspath refid="zax.module.bootclasspath"/>
       <classpath refid="zax.module.classpath"/>
       <src refid="zax.module.sourcepath"/>
       <patternset refid="excluded.from.compilation.zax"/>
     </javac>
-    
+
     <copy todir="${zax.output.dir}">
       <fileset dir="${module.zax.basedir}/src">
         <patternset refid="compiler.resources"/>
@@ -98,19 +131,20 @@
       </fileset>
     </copy>
   </target>
-  
+
   <target name="compile.module.zax.tests" depends="compile.module.zax.production" description="compile module Zax; test classes" unless="skip.tests"/>
-  
+
   <target name="clean.module.zax" description="cleanup module">
     <delete dir="${zax.output.dir}"/>
+    <delete dir="${zax.output.jardir}"/>
     <delete dir="${zax.testoutput.dir}"/>
   </target>
-  
+
   <target name="init" description="Build initialization">
     <!-- Perform any build initialization in this target -->
   </target>
-  
+
   <target name="clean" depends="clean.module.zax" description="cleanup all"/>
-  
+
   <target name="all" depends="init, clean, compile.module.zax" description="build all"/>
 </project>
