@@ -1,4 +1,4 @@
-package com.zaxsoft.apps.zax;
+package com.zaxsoft.streams;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -27,7 +27,7 @@ final class Pair<A,B> {
   }
 }
 
-final class S3StreamProvider implements StreamProvider {
+public final class S3StreamProvider implements StreamProvider {
   private static final Logger log = LoggerFactory.getLogger(S3StreamProvider.class);
   private final AmazonS3 S3;
   private final String bucketName;

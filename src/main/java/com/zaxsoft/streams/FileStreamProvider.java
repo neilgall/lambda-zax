@@ -1,4 +1,4 @@
-package com.zaxsoft.apps.zax;
+package com.zaxsoft.streams;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -6,7 +6,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-class FileStreamProvider implements StreamProvider {
+public class FileStreamProvider implements StreamProvider {
   public InputStream getInputStream(final String name) {
     try {
       return new FileInputStream(name);

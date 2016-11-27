@@ -1,5 +1,7 @@
 package com.zaxsoft.apps.zax;
 
+import com.zaxsoft.streams.S3StreamProvider;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,15 +43,7 @@ public class ZaxSpeechlet implements Speechlet {
         log.info("onLaunch requestId={}, sessionId={} userId={}", request.getRequestId(),
                 session.getSessionId(), session.getUser().getUserId());
 
-        final Zax zax = zaxForSession(session);
-        zax.addCommand("quit");
-        zax.start();
-        zax.runCommandQueue();
-
-        final String output = zax.getOutput();
-        log.debug("onLaunch finished: {}", output);
-
-        return responseForZaxOutput(output);
+        return getNewGameResponse(session);
     }
 
     @Override
@@ -61,8 +55,8 @@ public class ZaxSpeechlet implements Speechlet {
         Intent intent = request.getIntent();
         String intentName = (intent != null) ? intent.getName() : null;
 
-        if ("HelloWorldIntent".equals(intentName)) {
-            return getWelcomeResponse();
+        if ("NewGameIntent".equals(intentName)) {
+            return getNewGameResponse(session);
         } else if ("AMAZON.HelpIntent".equals(intentName)) {
             return getHelpResponse();
         } else {
@@ -76,6 +70,19 @@ public class ZaxSpeechlet implements Speechlet {
         log.info("onSessionEnded requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId());
         // any cleanup logic goes here
+    }
+
+    private SpeechletResponse getNewGameResponse(final Session session) {
+      final Zax zax = zaxForSession(session);
+      zax.addCommand(ZaxCommand.recordingOutput("look"));
+      zax.addCommand(ZaxCommand.ignoringOutput("quit"));
+      zax.start();
+      zax.runCommandQueue();
+
+      final String output = zax.getOutput();
+      log.debug("onLaunch finished: {}", output);
+
+      return responseForZaxOutput(output);
     }
 
     /**

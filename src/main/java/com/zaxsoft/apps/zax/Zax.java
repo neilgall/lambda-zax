@@ -23,6 +23,7 @@ package com.zaxsoft.apps.zax;
 
 import com.zaxsoft.zmachine.ZCPU;
 import com.zaxsoft.zmachine.ZUserInterface;
+import com.zaxsoft.streams.StreamProvider;
 
 import java.io.*;
 import java.util.Enumeration;
@@ -47,7 +48,8 @@ class Zax implements ZUserInterface {
   Vector terminatingCharacters; // List of terminating characters for READ operations
   Thread cpuThread = null; // Thread of ZMachine CPU
   StreamProvider streamProvider;
-  Queue<String> commandQueue;
+  Queue<ZaxCommand> commandQueue;
+  ZaxCommand currentCommand;
   StringBuilder output;
   String statusMessage = "";
 
@@ -60,14 +62,9 @@ class Zax implements ZUserInterface {
     this.commandQueue = new ArrayDeque<>();
   }
 
-  public void addCommand(final String cmd)
+  public void addCommand(final ZaxCommand cmd)
   {
     commandQueue.add(cmd);
-  }
-
-  public String getOutput()
-  {
-    return output.toString();
   }
 
   public void start()
@@ -83,6 +80,10 @@ class Zax implements ZUserInterface {
         cpuThread.join();
       } catch (InterruptedException e) {}
     }
+  }
+
+  public String getOutput() {
+    return output.toString();
   }
 
   /////////////////////////////////////////////////////////
@@ -214,9 +215,18 @@ class Zax implements ZUserInterface {
     if (commandQueue.isEmpty()) {
       quit();
     } else {
-      sb.append(commandQueue.remove());
+      currentCommand = nextCommand();
+      sb.append(currentCommand.getCommandText());
     }
     return 10;
+  }
+
+  private ZaxCommand nextCommand() {
+    if (currentCommand != null) {
+      output.append(currentCommand.getOutput());
+      currentCommand = null;
+    }
+    return commandQueue.remove();
   }
 
   // Read a single character from the current window
@@ -231,7 +241,9 @@ class Zax implements ZUserInterface {
   // as necessary, word-wrapping, and "more".
   public void showString(String s)
   {
-    output.append(s);
+    if (currentCommand != null) {
+      currentCommand.addOutput(s);
+    }
   }
 
   // Scroll the current window
