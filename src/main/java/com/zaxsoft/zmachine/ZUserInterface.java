@@ -21,6 +21,8 @@
  */
 package com.zaxsoft.zmachine;
 import java.util.Vector;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * ZUserInterface - This interface must be implemented by a programmer
@@ -128,11 +130,11 @@ public interface ZUserInterface {
 	// This method erases the current window.
 	public void eraseWindow(int window);
 
-	// This method gets a filename from the user, possibly using a FileDialog.
-	// A title for a dialog box is supplied.  If saveFlag is true, then we
-	// are saving a file; otherwise, we're loading a file.  The method should
-	// return null if there was an error or the user canceled.
-	public String getFilename(String title,String suggested,boolean saveFlag);
+  // Get an input stream for restoring the game state from
+  public InputStream getRestoreInputStream(String key);
+
+  // Get an output stream for saving the game state to
+  public OutputStream getSaveOutputStream(String key);
 
     // This function is called when the Z-Machine halts.  It
     // should not return.

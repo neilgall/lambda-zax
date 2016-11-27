@@ -24,10 +24,13 @@ package com.zaxsoft.apps.zax;
 import com.zaxsoft.zmachine.ZCPU;
 import com.zaxsoft.zmachine.ZUserInterface;
 
+import java.io.*;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.ArrayDeque;
+import java.util.Queue;
 
 /**
 * Zax main class.
@@ -42,29 +45,24 @@ class Zax implements ZUserInterface {
   Hashtable inputCharacters; // Used to translate between Event input characters and Z-Machine input characters
   Vector terminatingCharacters; // List of terminating characters for READ operations
   Thread cpuThread = null; // Thread of ZMachine CPU
+  Queue<String> commandQueue = new ArrayDeque<String>();
+  String statusMessage = "";
 
   // Main routine.  Just instantiates the class.
   public static void main(String args[])
   {
-    Zax j = new Zax();
-    j.playStory("zork1.dat");
+    new Zax("zork1.dat", args);
   }
 
   // Constructor
-  public Zax()
+  public Zax(String gameFile, String... commands)
   {
-  }
+    for (String cmd : commands) {
+      commandQueue.add(cmd);
+    }
 
-  // Play a story file
-  private void playStory(String file)
-  {
-    // If a story is already running, ignore this (for now)
-    if (cpuThread != null)
-    return;
-
-    // Create a ZMachine instance
     cpu = new ZCPU(this);
-    cpu.initialize(file);
+    cpu.initialize(gameFile);
     cpuThread = cpu.start();
   }
 
@@ -175,8 +173,7 @@ class Zax implements ZUserInterface {
       s3 = new String(" Turns: " + b + " ");
     }
 
-    status = s1 + " " + s2 + s3;
-    System.out.println(status);
+    statusMessage = s1 + " " + s2 + s3;
   }
 
   // Split the screen, as per SPLIT_SCREEN
@@ -195,15 +192,20 @@ class Zax implements ZUserInterface {
   // did not.
   public int readLine(StringBuffer sb,int time)
   {
-    sb.append(System.console().readLine());
+    if (commandQueue.isEmpty()) {
+      quit();
+    } else {
+      sb.append(commandQueue.remove());
+    }
     return 10;
   }
 
   // Read a single character from the current window
   public int readChar(int time)
   {
-    String s = System.console().readLine();
-    return s.charAt(0);
+    StringBuffer sb = new StringBuffer();
+    readLine(sb, 0);
+    return (sb.length() > 0) ? sb.charAt(0) : 10;
   }
 
   // Display a string -- this method does a number of things, including scrolling only
@@ -229,16 +231,35 @@ class Zax implements ZUserInterface {
   {
   }
 
-  // Get a filename for save or restore
-  public String getFilename(String title,String suggested,boolean saveFlag)
+  public InputStream getRestoreInputStream(String key)
   {
-    return "save.dat";
+    try {
+      return new FileInputStream(filenameForKey(key));
+    } catch (IOException e) {
+      return null;
+    }
+  }
+
+  public OutputStream getSaveOutputStream(String key)
+  {
+    try {
+      return new FileOutputStream(filenameForKey(key));
+    } catch (IOException e) {
+      return null;
+    }
+  }
+
+  private static String filenameForKey(String key) {
+    if (key == null) {
+      return "save.dat";
+    } else {
+      return "save-" + key + ".dat";
+    }
   }
 
   // Set the current colors
   public void setColor(int fg,int bg)
   {
-    System.out.println("Ignored a SET_COLOR!");
   }
 
   // Set the text style

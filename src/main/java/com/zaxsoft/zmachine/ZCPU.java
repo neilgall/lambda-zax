@@ -1592,26 +1592,20 @@ public class ZCPU extends Object implements Runnable {
     // SAVE <result>  V4+
     private void zop_save()
     {
-		String fn;
-		FileOutputStream fos;
-		DataOutputStream dos;
-
-		// Get a filename to save under
-		fn = zui.getFilename("Save Game",null,true);
-		if (fn == null) { // An error-probably user cancelled.
-			if (version <= 3)
+		OutputStream os = zui.getSaveOutputStream(null);
+    if (os == null) {
+      if (version <= 3)
 				dontBranch();
 			else
 				putVariable(curResult,0);
 			return;
-		}
+    }
 
+		DataOutputStream dos;
 		try {
-			fos = new FileOutputStream(fn);
-			dos = new DataOutputStream(fos);
+			dos = new DataOutputStream(os);
 			dumpState(dos);
 			memory.dumpMemory(dos,0,dynamicMemorySize);
-			fos.close();
 		}
 		catch (IOException ex1) {
 			if (version <= 3)
@@ -1620,6 +1614,12 @@ public class ZCPU extends Object implements Runnable {
 				putVariable(curResult,0);
 			return;
 		}
+    finally {
+      try {
+        os.close();
+      }
+      catch (IOException e) {}
+    }
 
 		// We did it!
 		if (version <= 3)
@@ -1632,34 +1632,32 @@ public class ZCPU extends Object implements Runnable {
     // RESTORE <result>  V4
     private void zop_restore()
     {
-		String fn;
-		FileInputStream fis;
-		DataInputStream dis;
-		int tsBit;
-
-		// Get a filename to restore from
-		fn = zui.getFilename("Restore Game",null,false);
-		if (fn == null) { // An error-probably user cancelled.
+		InputStream is = zui.getRestoreInputStream(null);
+    if (is == null) { // An error-probably user cancelled.
 			if (version >= 4)
 				putVariable(curResult,0);
 			return;
 		}
 
 		// Remember the transcript bit
-		tsBit = memory.fetchWord(0x10) & 0x0001;
+		int tsBit = memory.fetchWord(0x10) & 0x0001;
 
 		try {
-			fis = new FileInputStream(fn);
-			dis = new DataInputStream(fis);
+			DataInputStream dis = new DataInputStream(is);
 			readState(dis);
 			memory.readMemory(dis,0,dynamicMemorySize);
-			fis.close();
 		}
 		catch (IOException ex1) {
 			if (version >= 4)
 				putVariable(curResult,0);
 			return;
 		}
+    finally {
+      try {
+        is.close();
+      }
+      catch (IOException e) {}
+    }
 
 		// We did it!
 		memory.putWord(0x10,memory.fetchWord(0x10) | tsBit);
@@ -3064,45 +3062,44 @@ public class ZCPU extends Object implements Runnable {
     // SAVE [baddr1 n baddr2] <result>      V5+
     private void zop_ext_save()
     {
-		String fn;
-		String suggested;
-		FileOutputStream fos;
-		DataOutputStream dos;
-		int slen;
-
-        // If there are no arguments, do a normal save
-        if (numvops == 0) {
-            zop_save();
-            return;
-        }
+      // If there are no arguments, do a normal save
+      if (numvops == 0) {
+          zop_save();
+          return;
+      }
 
 		// Get a filename to save under
-		suggested = null;
+		String suggested = "aux";
 		if ((numvops > 2) && (vops[2] != 0)) {
-    		slen = memory.fetchByte(vops[2]);
+    		int slen = memory.fetchByte(vops[2]);
 	    	if (slen > 0) {
 		    	StringBuffer tmp = new StringBuffer();
 			    for (int i = 1;i <= slen;i++)
 				    tmp.append(String.valueOf((char)memory.fetchByte(vops[2]+i)));
 			    suggested = tmp.toString();
     		}
-    	}
-		fn = zui.getFilename("Save Auxiliary File",suggested,true);
-		if (fn == null) { // An error-probably user cancelled.
+    }
+
+    OutputStream os = zui.getSaveOutputStream(suggested);
+    if (os == null) {
 			putVariable(curResult,0);
 			return;
 		}
 
 		try {
-			fos = new FileOutputStream(fn);
-			dos = new DataOutputStream(fos);
+			DataOutputStream dos = new DataOutputStream(os);
 			memory.dumpMemory(dos,vops[0],vops[1]);
-			fos.close();
 		}
 		catch (IOException ex1) {
 			putVariable(curResult,0);
 			return;
 		}
+    finally {
+      try {
+        os.close();
+      }
+      catch (IOException e) {}
+    }
 
 		// We did it!
 		putVariable(curResult,1);
@@ -3111,12 +3108,6 @@ public class ZCPU extends Object implements Runnable {
     // RESTORE [baddr1 n baddr2] <result>   V5+
     private void zop_ext_restore()
     {
-		String fn;
-		String suggested;
-		FileInputStream fis;
-		DataInputStream dis;
-		int slen;
-
         // If there are no arguments, do a normal restore
         if (numvops == 0) {
             zop_restore();
@@ -3124,9 +3115,9 @@ public class ZCPU extends Object implements Runnable {
         }
 
 		// Get a filename to save under
-		suggested = null;
+		String suggested = "aux";
 		if ((numvops > 2) && (vops[2] != 0)) {
-    		slen = memory.fetchByte(vops[2]);
+    		int slen = memory.fetchByte(vops[2]);
 	    	if (slen > 0) {
 		    	StringBuffer tmp = new StringBuffer();
 			    for (int i = 1;i <= slen;i++)
@@ -3134,22 +3125,27 @@ public class ZCPU extends Object implements Runnable {
 			    suggested = tmp.toString();
 	    	}
 	    }
-		fn = zui.getFilename("Load Auxiliary File",suggested,false);
-		if (fn == null) { // An error-probably user cancelled.
+
+    InputStream is = zui.getRestoreInputStream(suggested);
+		if (is == null) { // An error-probably user cancelled.
 			putVariable(curResult,0);
 			return;
 		}
 
 		try {
-			fis = new FileInputStream(fn);
-			dis = new DataInputStream(fis);
+			DataInputStream dis = new DataInputStream(is);
 			memory.readMemory(dis,vops[0],vops[1]);
-			fis.close();
 		}
 		catch (IOException ex1) {
 			putVariable(curResult,0);
 			return;
 		}
+    finally {
+      try {
+        is.close();
+      }
+      catch (IOException e) {}
+    }
 
 		// We did it!
 		if (version >= 3) {
