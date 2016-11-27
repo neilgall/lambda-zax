@@ -21,7 +21,6 @@
  */
 package com.zaxsoft.zmachine;
 
-import java.awt.*;
 import java.io.*;
 import java.util.Stack;
 import java.util.StringTokenizer;
@@ -83,7 +82,7 @@ public class ZCPU extends Object implements Runnable {
 	private int mainDictionary; // Address of main dictionary
 	private byte[] undoState; // Current undo state
     private boolean did_newline = false; // Set to true whenever NEW_LINE called--used by READ
-    
+
     // Default alphabets for decoding Z-Strings
 	private boolean altCharSet = false; // True if we're using an alternate character set
     private int alphabetL = 0;
@@ -126,9 +125,8 @@ public class ZCPU extends Object implements Runnable {
     {
         int i;
         boolean transcriptOn = false;
-		Dimension s;
         int termChars;
-        
+
         // If this is a restart, remember the value of the printer
         // transcript bit.
         if (restartFlag) {
@@ -205,18 +203,16 @@ public class ZCPU extends Object implements Runnable {
 			memory.putByte(0x1f,(byte)'A'); // Interpreter version
 
 			// Screen height and width in characters
-			s = zui.getScreenCharacters();
-			memory.putByte(0x20,s.height);
-			memory.putByte(0x21,s.width);
+			// s = zui.getScreenCharacters();
+			memory.putByte(0x20, 24);
+			memory.putByte(0x21, 80);
 
 			// Screen height and width in units, font size in units, colors (V5+)
 			if (version >= 5) {
-				s = zui.getScreenUnits();
-				memory.putWord(0x22,s.width);
-				memory.putWord(0x24,s.height);
-				s = zui.getFontSize();
-				memory.putByte(0x26,s.height);
-				memory.putByte(0x27,s.width);
+				memory.putWord(0x22, 320);
+				memory.putWord(0x24, 240);
+				memory.putByte(0x26, 8);
+				memory.putByte(0x27, 8);
 				memory.putByte(0x2c,zui.getDefaultBackground());
 				memory.putByte(0x2d,zui.getDefaultForeground());
 			}
@@ -262,7 +258,7 @@ public class ZCPU extends Object implements Runnable {
                 zui.setTerminatingCharacters(terminators);
             }
         }
-        
+
         // Get the alternate character set, if there is one,
         // in V5+ games. (currently not implemented)
     }
@@ -282,7 +278,7 @@ public class ZCPU extends Object implements Runnable {
 		// method, and return a handle to the thread.
 		execThread = new Thread(this,"ZMachine");
 		execThread.start();
-		
+
 		return execThread;
 	}
 
@@ -1366,30 +1362,30 @@ public class ZCPU extends Object implements Runnable {
         int addr;
         int newFrameAddr;
         int numvars;
-        
+
         // Unpack the routine address and get number of local variables
         addr = unpackAddr(raddr,true);
         numvars = memory.fetchByte(addr);
         addr++;
-        
+
         // Get a number for the new frame
         newFrameAddr = curCallFrame.frameNumber + 1;
-        
+
         // Push the current call frame onto the stack
         callStack.push(curCallFrame);
-        
+
         // Initialize a new call frame
         curCallFrame = new ZCallFrame();
-        
+
         // Set pc to the beginning of the routine's code
         if (version < 5)
             curCallFrame.pc = addr + (numvars * 2);
         else
             curCallFrame.pc = addr;
-        
+
         // Get a new routine stack
         curCallFrame.routineStack = new Stack();
-        
+
         // Initialize local variables
         for (int i=0;i<numvars;i++) {
             if (version < 5)
@@ -1397,23 +1393,23 @@ public class ZCPU extends Object implements Runnable {
             else
                 curCallFrame.localVars[i] = 0;
         }
-        
+
         // Indicate that this routine was called as an interrupt
         curCallFrame.callType = ZCallFrame.INTERRUPT;
-        
+
         // No arguments
         curCallFrame.argCount = 0;
-        
+
         // Store frame number
         curCallFrame.frameNumber = newFrameAddr;
-        
+
         // Now call decodeLoop recursively.
         decodeLoop();
-        
+
         // When we're done, ret_value will contain the routine's return value.
         return ret_value;
     }
-    
+
 	// Save the state of the Z-Machine--that is, the current call frame
 	// and the call frame stack.
 	private void dumpState(DataOutputStream dos) throws IOException
@@ -2376,14 +2372,14 @@ public class ZCPU extends Object implements Runnable {
         int curaddr;
 		int baddr1, baddr2;
         int time = 0, raddr = 0;
-        
+
 		baddr1 = vops[0];
 		baddr2 = vops[1];
         if (numvops > 2) {
             time = vops[2];
             raddr = vops[3];
         }
-        
+
 		// Flush the I/O card's output buffer
 		ioCard.outputFlush();
 
@@ -2425,7 +2421,7 @@ public class ZCPU extends Object implements Runnable {
         else
             termChar = ioCard.readLine(sb,0);
         s = sb.toString();
-        
+
         // If V1-4, just store the line.  If V5+, possibly
         // store it after other characters in the buffer.
         if (version <= 4) {
@@ -2566,12 +2562,9 @@ public class ZCPU extends Object implements Runnable {
     // GET_CURSOR baddr         V4+
     private void zop_get_cursor()
     {
-		Point p;
-
 		ioCard.outputFlush();
-		p = zui.getCursorPosition();
-		memory.putWord(vops[0],p.y);
-		memory.putWord(vops[0]+2,p.x);
+		memory.putWord(vops[0], 0);
+		memory.putWord(vops[0]+2, 0);
     }
 
     // SET_TEXT_STYLE n         V4+
@@ -2579,9 +2572,8 @@ public class ZCPU extends Object implements Runnable {
     {
         ioCard.outputFlush();
         zui.setTextStyle(vops[0]);
-		Dimension s = zui.getFontSize();
-		memory.putByte(0x26,s.height);
-		memory.putByte(0x27,s.width);
+		memory.putByte(0x26, 8);
+		memory.putByte(0x27, 8);
     }
 
     // BUFFER_MODE bit          V4+
@@ -3040,9 +3032,8 @@ public class ZCPU extends Object implements Runnable {
             return;
 
         // Print the table
-        Point p = zui.getCursorPosition();
-        baseX = p.x;
-        curY = p.y;
+        baseX = 0;
+        curY = 0;
         lineAddr = baddr;
         for (int i=0;i<y;i++) {
             for (int j = 0;j<x;j++) {
@@ -3084,7 +3075,7 @@ public class ZCPU extends Object implements Runnable {
             zop_save();
             return;
         }
-        
+
 		// Get a filename to save under
 		suggested = null;
 		if ((numvops > 2) && (vops[2] != 0)) {
@@ -3131,7 +3122,7 @@ public class ZCPU extends Object implements Runnable {
             zop_restore();
             return;
         }
-        
+
 		// Get a filename to save under
 		suggested = null;
 		if ((numvops > 2) && (vops[2] != 0)) {
@@ -3207,9 +3198,8 @@ public class ZCPU extends Object implements Runnable {
     private void zop_set_font()
     {
 		zui.setFont(vops[0]);
-		Dimension s = zui.getFontSize();
-		memory.putByte(0x26,s.height);
-		memory.putByte(0x27,s.width);
+		memory.putByte(0x26, 8);
+		memory.putByte(0x27, 8);
     }
 
     // DRAW_PICTURE pic [y x]               V6

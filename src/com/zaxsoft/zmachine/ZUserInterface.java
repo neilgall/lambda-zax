@@ -20,8 +20,6 @@
  * THE SOFTWARE.
  */
 package com.zaxsoft.zmachine;
-
-import java.awt.*;
 import java.util.Vector;
 
 /**
@@ -46,7 +44,7 @@ public interface ZUserInterface {
     // should be passed a Vector of Integer objects containing
     // the Z-Characters that should be treated as terminating characters.
     public void setTerminatingCharacters(Vector chars);
-    
+
     // This method returns true if the user interface supports a
     // status line.
     public boolean hasStatusLine();
@@ -72,26 +70,11 @@ public interface ZUserInterface {
 
     // This method returns true if timed input is supported.
     public boolean hasTimedInput();
-    
-	// This method returns the size of the "screen" in lines/columns.
-	public Dimension getScreenCharacters();
 
-	// This method returns the size of the "screen" in "units".
-	public Dimension getScreenUnits();
-
-	// This method returns the size of the current font in "units".
-	public Dimension getFontSize();
-
-    // This method returns the size of the specified window, in characters.
-    public Dimension getWindowSize(int window);
-    
 	// These methods return the default foreground and background colors
 	// (as Z-Machine color numbers).
 	public int getDefaultForeground();
 	public int getDefaultBackground();
-
-	// This method returns the current cursor position.
-	public Point getCursorPosition();
 
     // This method shows the status bar.  This is handled entirely
     // by the user interface, rather than in the CPU or the I/O card,
@@ -102,7 +85,7 @@ public interface ZUserInterface {
 
     // Split the screen, as per SPLIT_SCREEN instruction
     public void splitScreen(int lines);
-    
+
     // This method sets the current window, to which all output
     // will be directed.  In V1-3, this implies clearing the window;
     // in V4+, it implies homing the cursor.

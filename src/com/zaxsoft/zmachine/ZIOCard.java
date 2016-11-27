@@ -21,7 +21,6 @@
  */
 package com.zaxsoft.zmachine;
 
-import java.awt.*;
 import java.util.StringTokenizer;
 
 /**
@@ -148,8 +147,7 @@ class ZIOCard extends Object {
                 if (w < 0)
                     memWidth = -w;
                 else {
-                    Dimension d = zui.getWindowSize(w);
-                    memWidth = d.width;
+                    memWidth = 80;
                 }
                 memCursorX = 0;
             }
