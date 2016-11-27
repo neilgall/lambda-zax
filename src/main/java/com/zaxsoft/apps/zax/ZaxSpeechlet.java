@@ -12,13 +12,21 @@ import com.amazon.speech.speechlet.SessionStartedRequest;
 import com.amazon.speech.speechlet.Speechlet;
 import com.amazon.speech.speechlet.SpeechletException;
 import com.amazon.speech.speechlet.SpeechletResponse;
+import com.amazon.speech.speechlet.User;
 import com.amazon.speech.ui.PlainTextOutputSpeech;
 import com.amazon.speech.ui.Reprompt;
 import com.amazon.speech.ui.SimpleCard;
 
 public class ZaxSpeechlet implements Speechlet {
     private static final Logger log = LoggerFactory.getLogger(ZaxSpeechlet.class);
-    private Zax zax;
+
+    private Zax zaxForSession(final Session session) {
+        final User user = session.getUser();
+        final String userId = (user == null ? null : user.getUserId());
+        final String prefix = (userId == null ? "default" : userId + "-");
+        final S3StreamProvider streamProvider = new S3StreamProvider("alexa-zork", prefix);
+        return new Zax("zork1.dat", streamProvider);
+    }
 
     @Override
     public void onSessionStarted(final SessionStartedRequest request, final Session session)
@@ -32,7 +40,16 @@ public class ZaxSpeechlet implements Speechlet {
             throws SpeechletException {
         log.info("onLaunch requestId={}, sessionId={} userId={}", request.getRequestId(),
                 session.getSessionId(), session.getUser().getUserId());
-        return getWelcomeResponse();
+
+        final Zax zax = zaxForSession(session);
+        zax.addCommand("quit");
+        zax.start();
+        zax.runCommandQueue();
+
+        final String output = zax.getOutput();
+        log.debug("onLaunch finished: {}", output);
+
+        return responseForZaxOutput(output);
     }
 
     @Override
@@ -83,6 +100,23 @@ public class ZaxSpeechlet implements Speechlet {
         reprompt.setOutputSpeech(speech);
 
         return SpeechletResponse.newAskResponse(speech, reprompt, card);
+    }
+
+    /**
+     * Build a SpeechletResponse from the Zax output
+     */
+    private SpeechletResponse responseForZaxOutput(final String output) {
+      final PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+      speech.setText(output);
+
+      final Reprompt reprompt = new Reprompt();
+      reprompt.setOutputSpeech(speech);
+
+      final SimpleCard card = new SimpleCard();
+      card.setTitle("Zork");
+      card.setContent(output);
+
+      return SpeechletResponse.newAskResponse(speech, reprompt, card);
     }
 
     /**

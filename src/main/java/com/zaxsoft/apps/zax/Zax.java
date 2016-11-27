@@ -39,31 +39,50 @@ import java.util.Queue;
 */
 class Zax implements ZUserInterface {
   static String versionString = "0.91";
+  final String gameFile;
   ZCPU cpu;
   int version = 0;    // Version of this storyfile - 0 if game not yet initialized.
   int moreLines = 0; // Number of lines before next MORE
   Hashtable inputCharacters; // Used to translate between Event input characters and Z-Machine input characters
   Vector terminatingCharacters; // List of terminating characters for READ operations
   Thread cpuThread = null; // Thread of ZMachine CPU
-  Queue<String> commandQueue = new ArrayDeque<String>();
+  StreamProvider streamProvider;
+  Queue<String> commandQueue;
+  StringBuilder output;
   String statusMessage = "";
 
-  // Main routine.  Just instantiates the class.
-  public static void main(String args[])
+  // Constructor
+  public Zax(String gameFile, StreamProvider streamProvider)
   {
-    new Zax("zork1.dat", args);
+    this.gameFile = gameFile;
+    this.streamProvider = streamProvider;
+    this.output = new StringBuilder();
+    this.commandQueue = new ArrayDeque<>();
   }
 
-  // Constructor
-  public Zax(String gameFile, String... commands)
+  public void addCommand(final String cmd)
   {
-    for (String cmd : commands) {
-      commandQueue.add(cmd);
-    }
+    commandQueue.add(cmd);
+  }
 
+  public String getOutput()
+  {
+    return output.toString();
+  }
+
+  public void start()
+  {
     cpu = new ZCPU(this);
     cpu.initialize(gameFile);
     cpuThread = cpu.start();
+  }
+
+  public void runCommandQueue() {
+    while (!commandQueue.isEmpty()) {
+      try {
+        cpuThread.join();
+      } catch (InterruptedException e) {}
+    }
   }
 
   /////////////////////////////////////////////////////////
@@ -212,7 +231,7 @@ class Zax implements ZUserInterface {
   // as necessary, word-wrapping, and "more".
   public void showString(String s)
   {
-    System.out.println(s);
+    output.append(s);
   }
 
   // Scroll the current window
@@ -233,32 +252,20 @@ class Zax implements ZUserInterface {
 
   public InputStream getRestoreInputStream(String key)
   {
-    try {
-      return new FileInputStream(filenameForKey(key));
-    } catch (IOException e) {
-      return null;
-    }
+    return streamProvider.getInputStream(filenameForKey(key));
   }
 
   public void disposeInputStream(InputStream is) {
-    try {
-      is.close();
-    } catch (IOException e) {}
+    streamProvider.disposeInputStream(is);
   }
 
   public OutputStream getSaveOutputStream(String key)
   {
-    try {
-      return new FileOutputStream(filenameForKey(key));
-    } catch (IOException e) {
-      return null;
-    }
+    return streamProvider.getOutputStream(filenameForKey(key));
   }
 
   public void disposeOutputStream(OutputStream os) {
-    try {
-      os.close();
-    } catch (IOException e) {}
+    streamProvider.disposeOutputStream(os);
   }
 
   private static String filenameForKey(String key) {
