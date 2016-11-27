@@ -133,8 +133,14 @@ public interface ZUserInterface {
   // Get an input stream for restoring the game state from
   public InputStream getRestoreInputStream(String key);
 
+  // Dispose an InputStream obtained with getRestoreInputStream()
+  public void disposeInputStream(InputStream is);
+
   // Get an output stream for saving the game state to
   public OutputStream getSaveOutputStream(String key);
+
+  // Dispose an OutputStream obtained with getSaveOutputStream()
+  public void disposeOutputStream(OutputStream os);
 
     // This function is called when the Z-Machine halts.  It
     // should not return.

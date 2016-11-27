@@ -240,6 +240,12 @@ class Zax implements ZUserInterface {
     }
   }
 
+  public void disposeInputStream(InputStream is) {
+    try {
+      is.close();
+    } catch (IOException e) {}
+  }
+
   public OutputStream getSaveOutputStream(String key)
   {
     try {
@@ -247,6 +253,12 @@ class Zax implements ZUserInterface {
     } catch (IOException e) {
       return null;
     }
+  }
+
+  public void disposeOutputStream(OutputStream os) {
+    try {
+      os.close();
+    } catch (IOException e) {}
   }
 
   private static String filenameForKey(String key) {

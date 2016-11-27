@@ -1615,10 +1615,7 @@ public class ZCPU extends Object implements Runnable {
 			return;
 		}
     finally {
-      try {
-        os.close();
-      }
-      catch (IOException e) {}
+      zui.disposeOutputStream(os);
     }
 
 		// We did it!
@@ -1653,10 +1650,7 @@ public class ZCPU extends Object implements Runnable {
 			return;
 		}
     finally {
-      try {
-        is.close();
-      }
-      catch (IOException e) {}
+      zui.disposeInputStream(is);
     }
 
 		// We did it!
@@ -3095,10 +3089,7 @@ public class ZCPU extends Object implements Runnable {
 			return;
 		}
     finally {
-      try {
-        os.close();
-      }
-      catch (IOException e) {}
+      zui.disposeOutputStream(os);
     }
 
 		// We did it!
@@ -3141,10 +3132,7 @@ public class ZCPU extends Object implements Runnable {
 			return;
 		}
     finally {
-      try {
-        is.close();
-      }
-      catch (IOException e) {}
+      zui.disposeInputStream(is);
     }
 
 		// We did it!
