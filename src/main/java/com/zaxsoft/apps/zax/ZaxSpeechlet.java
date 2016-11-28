@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.amazon.speech.slu.Intent;
+import com.amazon.speech.slu.Slot;
 import com.amazon.speech.speechlet.IntentRequest;
 import com.amazon.speech.speechlet.LaunchRequest;
 import com.amazon.speech.speechlet.Session;
@@ -56,11 +57,32 @@ public class ZaxSpeechlet implements Speechlet {
         String intentName = (intent != null) ? intent.getName() : null;
 
         if ("NewGameIntent".equals(intentName)) {
-            return getNewGameResponse(session);
+          return getNewGameResponse(session);
+
+        } else if ("LookIntent".equals(intentName)) {
+          final String move = gameMoveForLookIntent(intent);
+          return getGameMoveResponse(session, move);
+
+        } else if ("OpenIntent".equals(intentName)) {
+          final String move = gameMoveForOpenIntent(intent);
+          return getGameMoveResponse(session, move);
+
+        } else if ("TakeIntent".equals(intentName)) {
+          final String move = gameMoveForTakeIntent(intent);
+          return getGameMoveResponse(session, move);
+
+        } else if ("ReadIntent".equals(intentName)) {
+          final String move = gameMoveForReadIntent(intent);
+          return getGameMoveResponse(session, move);
+
         } else if ("AMAZON.HelpIntent".equals(intentName)) {
-            return getHelpResponse();
+          return getHelpResponse();
+
+        } else if ("AMAZON.StopIntent".equals(intentName)) {
+          return getStopResponse();
+
         } else {
-            throw new SpeechletException("Invalid Intent");
+          throw new SpeechletException("Invalid Intent");
         }
     }
 
@@ -75,14 +97,21 @@ public class ZaxSpeechlet implements Speechlet {
     private SpeechletResponse getNewGameResponse(final Session session) {
       final Zax zax = zaxForSession(session);
       zax.addCommand(ZaxCommand.recordingOutput("look"));
+      zax.addCommand(ZaxCommand.ignoringOutput("save"));
       zax.addCommand(ZaxCommand.ignoringOutput("quit"));
       zax.start();
       zax.runCommandQueue();
+      return responseForZaxOutput(zax.getOutput());
+    }
 
-      final String output = zax.getOutput();
-      log.debug("onLaunch finished: {}", output);
-
-      return responseForZaxOutput(output);
+    private SpeechletResponse getGameMoveResponse(final Session session, final String move) {
+      final Zax zax = zaxForSession(session);
+      zax.addCommand(ZaxCommand.ignoringOutput("restore"));
+      zax.addCommand(ZaxCommand.recordingOutput(move));
+      zax.addCommand(ZaxCommand.ignoringOutput("save"));
+      zax.start();
+      zax.runCommandQueue();
+      return responseForZaxOutput(zax.getOutput());
     }
 
     /**
@@ -148,5 +177,55 @@ public class ZaxSpeechlet implements Speechlet {
         reprompt.setOutputSpeech(speech);
 
         return SpeechletResponse.newAskResponse(speech, reprompt, card);
+    }
+
+    private SpeechletResponse getStopResponse() {
+        PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
+        speech.setText("Thanks for playing. Come back soon!");
+        return SpeechletResponse.newTellResponse(speech);
+    }
+
+    private final String getSlotValue(final Intent intent, final String name) {
+      final Slot slot = intent.getSlot(name);
+      return (slot == null) ? null : slot.getValue();
+    }
+
+    private final String gameMoveForLookIntent(final Intent intent) {
+      final String object = getSlotValue(intent, "Object");
+      if (object == null) {
+        return "look";
+      } else {
+        return "look at " + object;
+      }
+    }
+
+    private final String gameMoveForOpenIntent(final Intent intent) {
+      final String object = getSlotValue(intent, "Object");
+      if (object == null) {
+        return "open";
+      } else {
+        return "open " + object;
+      }
+    }
+
+    private final String gameMoveForReadIntent(final Intent intent) {
+      final String object = getSlotValue(intent, "Object");
+      if (object == null) {
+        return "read";
+      } else {
+        return "read " + object;
+      }
+    }
+
+    private final String gameMoveForTakeIntent(final Intent intent) {
+      final String object = getSlotValue(intent, "Object");
+      final String place = getSlotValue(intent, "Place");
+      if (object == null) {
+        return "take";
+      } else if (place == null) {
+        return "take " + object;
+      } else {
+        return "take " + object + " from " + place;
+      }
     }
 }

@@ -22,8 +22,12 @@ class ZaxCommand {
   }
 
   public void addOutput(final String output) {
-    if (this.output != null) {
-      this.output.append(output);
+    if (this.output != null && output != null) {
+      String trimmed = output.trim();
+      if (trimmed.endsWith(">")) {
+        trimmed = trimmed.substring(0, trimmed.length()-1);
+      }
+      this.output.append(trimmed);
     }
   }
 

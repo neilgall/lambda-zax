@@ -1,0 +1,28 @@
+NewGameIntent start a new game
+NewGameIntent begin a new game
+NewGameIntent start a game
+NewGameIntent begin a game
+NewGameIntent start over
+NewGameIntent restart
+NewGameIntent restart game
+NewGameIntent begin again
+NewGameIntent go back to the start
+NewGameIntent go back to the beginning
+NewGameIntent return to the start
+NewGameIntent return to the beginning
+
+LookIntent look
+LookIntent look around
+LookIntent look at {Object}
+LookIntent examine {Object}
+LookIntent study {Object}
+LookIntent investigate {Object}
+
+OpenIntent open {Object}
+OpenIntent open the {Object}
+
+TakeIntent take {Object}
+TakeIntent pick up {Object}
+TakeIntent grab {Object}
+
+ReadIntent read {Object}
