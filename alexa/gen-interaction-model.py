@@ -57,7 +57,7 @@ def generate_intent(verb, intent_name, slot_count):
 
 def parse_grammar(grammar, preprocessor):
     intents = []
-    all_utterances = []
+    all_utterances = set()
     finding_verb = True
     for line in grammar:
         if finding_verb:
@@ -69,20 +69,20 @@ def parse_grammar(grammar, preprocessor):
                         synonyms = filter(None, map(preprocessor, verb_words[1:]))
                         intent_name = main_verb.capitalize() + "Intent"
                         slot_count = 0
-                        utterances = []
+                        utterances = set()
                         finding_verb = False
         else:
             for sentence in re.findall(r'"([\w\s]+)"', line):
                 utterance, num_objects = parse_sentence(main_verb, sentence, preprocessor)
-                utterances.extend(generate_utterances(intent_name, utterance, main_verb, synonyms))
+                utterances.update(generate_utterances(intent_name, utterance, main_verb, synonyms))
                 slot_count = max(slot_count, num_objects)
 
             if line.strip() == "":
                 intents.append(generate_intent(main_verb, intent_name, slot_count))
-                all_utterances.extend(utterances)
+                all_utterances.update(utterances)
                 finding_verb = True
 
-    return {'intents': intents}, all_utterances
+    return {'intents': intents}, sorted(all_utterances)
 
 def parse_words(zobjects, word_type, preprocessor):
     words = set()
