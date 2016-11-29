@@ -91,6 +91,7 @@ public class ZaxSpeechlet implements Speechlet {
     private SpeechletResponse getGameMoveResponse(final Session session, final Intent intent) {
       final Zax zax = zaxForSession(session);
       final String move = gameMoveForIntent(intent);
+      log.info("Game move {}", move);
       zax.addCommand(ZaxCommand.ignoringOutput("restore"));
       zax.addCommand(ZaxCommand.recordingOutput(move));
       zax.addCommand(ZaxCommand.ignoringOutput("save"));
@@ -179,8 +180,9 @@ public class ZaxSpeechlet implements Speechlet {
       String move = intent.getName().substring(0, intent.getName().length()-6);
       int object = 0;
       for (;;) {
-        final String slotName = "Object" + ('A' + object);
+        final String slotName = "Object" + (char)('A' + object);
         final String slotValue = getSlotValue(intent, slotName);
+        log.info("Slot {} = {}", slotName, slotValue);
         if (slotValue == null) {
           return move;
         } else {
