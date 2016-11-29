@@ -3,6 +3,16 @@
 -i
 -l
 -z
+-n
+-e
+-s
+-w
+-d
+-u
+-ne
+-nw
+-se
+-sw
 -again
 -verbos
 -brief
