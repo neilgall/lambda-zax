@@ -25,16 +25,24 @@ def invoke_infodump(*args):
     infodump = subprocess.Popen(args, stdout=subprocess.PIPE)
     return infodump.stdout.readlines()
 
-def slot_name(verb, index):
-    root = "Direction" if verb == "go" else "Object"
-    return "%s%c" % (root, ord('A') + index)
+def generate_slot(verb, index):
+    if verb == "go":
+        root = "Direction"
+        type = "LIST_OF_DIRECTIONS"
+    else:
+        root = "Object"
+        type = "LIST_OF_NOUNS"
+    return {
+        "name": "%s%c" % (root, ord('A') + index),
+        "type": type
+    }
 
 def parse_sentence(verb, sentence, preprocessor):
     num_objects = 0
     words = []
     for word in map(preprocessor, sentence.split()):
         if word == 'OBJ':
-            word = '{%s}' % (slot_name(verb, num_objects),)
+            word = '{%s}' % (generate_slot(verb, num_objects)["name"],)
             num_objects += 1
         words.append(word)
     return " ".join(words), num_objects
@@ -49,10 +57,7 @@ def generate_intent(verb, intent_name, slot_count):
     if slot_count > 0:
         intent['slots'] = []
         for i in range(slot_count):
-            intent['slots'].append({
-                'name': slot_name(verb, i),
-                'type': 'LIST_OF_NOUNS'
-            })
+            intent['slots'].append(generate_slot(verb, i))
     return intent
 
 def parse_grammar(grammar, preprocessor):
