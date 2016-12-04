@@ -25,8 +25,8 @@ def invoke_infodump(*args):
     infodump = subprocess.Popen(args, stdout=subprocess.PIPE)
     return infodump.stdout.readlines()
 
-def generate_slot(verb, index):
-    if verb == "go":
+def generate_noun_slot(verbs, index):
+    if "go" in verbs:
         root = "Direction"
         type = "LIST_OF_DIRECTIONS"
     else:
@@ -37,57 +37,47 @@ def generate_slot(verb, index):
         "type": type
     }
 
-def parse_sentence(verb, sentence, preprocessor):
-    num_objects = 0
+def generate_verb_slot(index):
+    return {
+        "name": "Verb%d" % (index,),
+        "type": "LIST_OF_VERBS"
+    }
+
+def parse_sentence(verbs, sentence, preprocessor):
+    num_verb_slots = 0
+    num_noun_slots = 0
     words = []
     for word in map(preprocessor, sentence.split()):
+        if word in verbs:
+            word = "{%s}" % (generate_verb_slot(num_verb_slots)["name"],)
+            num_verb_slots += 1
         if word == 'OBJ':
-            word = '{%s}' % (generate_slot(verb, num_objects)["name"],)
-            num_objects += 1
+            word = '{%s}' % (generate_noun_slot(verbs, num_noun_slots)["name"],)
+            num_noun_slots += 1
         words.append(word)
-    return " ".join(words), num_objects
-
-def generate_utterances(intent_name, sentence, main_verb, synonyms):
-    yield intent_name + " " + sentence
-    for synonym in synonyms:
-        yield intent_name + " " + sentence.replace(main_verb, synonym)
-
-def generate_intent(verb, intent_name, slot_count):
-    intent = {'intent': intent_name}
-    if slot_count > 0:
-        intent['slots'] = []
-        for i in range(slot_count):
-            intent['slots'].append(generate_slot(verb, i))
-    return intent
+    return words
 
 def parse_grammar(grammar, preprocessor):
-    intents = []
+    all_verbs = set()
     all_utterances = set()
     finding_verb = True
     for line in grammar:
         if finding_verb:
             if "verb = " in line:
                 verb_words = re.findall(r'\"(\w+)\"', line)
-                if len(verb_words) > 0:
-                    main_verb = preprocessor(verb_words[0])
-                    if main_verb:
-                        synonyms = filter(None, map(preprocessor, verb_words[1:]))
-                        intent_name = main_verb.capitalize() + "Intent"
-                        slot_count = 0
-                        utterances = set()
-                        finding_verb = False
+                verbs = filter(None, map(preprocessor, verb_words))
+                if len(verbs) > 0:
+                    finding_verb = False
         else:
             for sentence in re.findall(r'"([\w\s]+)"', line):
-                utterance, num_objects = parse_sentence(main_verb, sentence, preprocessor)
-                utterances.update(generate_utterances(intent_name, utterance, main_verb, synonyms))
-                slot_count = max(slot_count, num_objects)
+                utterances.add(parse_sentence(verbs, sentence, preprocessor))
 
             if line.strip() == "":
-                intents.append(generate_intent(main_verb, intent_name, slot_count))
+                all_verbs.update(verbs)
                 all_utterances.update(utterances)
                 finding_verb = True
 
-    return {'intents': intents}, sorted(all_utterances)
+    return sorted(all_verbs), sorted(all_utterances)
 
 def parse_words(zobjects, word_type, preprocessor):
     words = set()
@@ -97,6 +87,23 @@ def parse_words(zobjects, word_type, preprocessor):
         if m:
             words.add(m.group(1))
     return filter(None, map(preprocessor, words))
+
+def count_verb_slots(utterance):
+    return len(filter(lambda w: w[:5] == "{Verb", utterance))
+
+def count_noun_slots(utterance):
+    return len(filter(lambda w: w[:7] == "{Object", utterance))
+
+def generate_schema(verbs, utterances):
+    verb_slots = max(map(count_verb_slots, utterances))
+    noun_slots = max(map(count_noun_slots, utterances))
+    intent = {'intent': 'GameMoveIntent'}
+    if verb_slots > 0:
+        intent['slots'] = []
+        for i in range(slot_count):
+            intent['slots'].append(generate_slot(verb, i))
+    return intent
+
 
 def dump_strings(strings, file):
     with open(file, 'wt') as fp:
@@ -115,12 +122,13 @@ if __name__ == "__main__":
 
     preprocessor = read_customisations(args.customise)
 
-    grammar = invoke_infodump(args.infodump, "-w0", "-s", "-g", args.zfile)
-    schema, utterances = parse_grammar(grammar, preprocessor)
-
     zobjects = invoke_infodump(args.infodump, "-w0", "-c1", "-d", args.zfile)
     nouns = parse_words(zobjects, 'noun', preprocessor)
     directions = parse_words(zobjects, 'dir', preprocessor)
+
+    grammar = invoke_infodump(args.infodump, "-w0", "-s", "-g", args.zfile)
+    verbs, utterances = parse_grammar(grammar, preprocessor)
+    schema = generate_schema(verbs, utterances)
 
     with open(args.schema, 'wt') as fp:
         json.dump(schema, fp, indent=2)
