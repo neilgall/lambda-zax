@@ -1,0 +1,24 @@
+name: AlexaSkillBuilder
+version: 1.0
+cabal-version: 1.11
+build-type: Simple
+license: AllRightsReserved
+stability: experimental
+data-files:
+    zork1.dat
+x-ghc-framework-version: 7.10.3-5.18-1
+x-last-ide-version: HfM1.3.0
+Executable AlexaSkillBuilder
+  main-is: Main.hs
+  buildable: True
+  build-depends:
+      base -any,
+      process -any,
+      optparse-applicative -any,
+      containers -any,
+      text -any,
+      regex-compat -any
+  other-modules:
+      AlexaSkill
+      Preprocessor
+      ZcodeParser
