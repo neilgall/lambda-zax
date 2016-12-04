@@ -17,7 +17,8 @@ Executable AlexaSkillBuilder
       optparse-applicative -any,
       containers -any,
       text -any,
-      regex-compat -any
+      regex-compat -any,
+      mtl -any
   other-modules:
       AlexaSkill
       Preprocessor

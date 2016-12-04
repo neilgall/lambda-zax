@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module ZcodeParser (Zcode, parseZcodeFile) where
+module ZcodeParser (Zcode(..), ZWord(..), parseZcodeFile) where
 
 import Debug.Trace
 import Data.Maybe (catMaybes, maybeToList)

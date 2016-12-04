@@ -32,4 +32,4 @@ main = do
   preprocessor <- parsePreprocessorFile argPreprocessorPath
   zcode <- parseZcodeFile argZcodePath argInfodumpPath preprocessor
   let skill = generateAlexaSkill zcode
-  putStrLn "done"
+  putStrLn (show skill)
