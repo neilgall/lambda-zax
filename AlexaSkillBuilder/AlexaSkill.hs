@@ -1,5 +1,14 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
-module AlexaSkill (generateAlexaSkill) where
+module AlexaSkill (
+  generateAlexaSkill,
+  intentNameForUtterance,
+  AlexaSlot(..),
+  AlexaSlotWords(..),
+  AlexaSlotType(..),
+  AlexaIntent(..),
+  AlexaUtterance(..),
+  AlexaSkill(..)
+) where
 
 import Control.Monad.State.Lazy
 import qualified Data.Map as Map

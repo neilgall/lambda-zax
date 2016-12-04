@@ -2,12 +2,8 @@ name: AlexaSkillBuilder
 version: 1.0
 cabal-version: 1.11
 build-type: Simple
-license: AllRightsReserved
+license: MIT
 stability: experimental
-data-files:
-    zork1.dat
-x-ghc-framework-version: 7.10.3-5.18-1
-x-last-ide-version: HfM1.3.0
 Executable AlexaSkillBuilder
   main-is: Main.hs
   buildable: True
@@ -18,8 +14,14 @@ Executable AlexaSkillBuilder
       containers -any,
       text -any,
       regex-compat -any,
-      mtl -any
+      mtl -any,
+      filepath -any,
+      directory -any,
+      aeson -any,
+      aeson-pretty -any,
+      bytestring -any
   other-modules:
       AlexaSkill
+      AlexaSkillOutput
       Preprocessor
       ZcodeParser
