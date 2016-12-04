@@ -9,46 +9,57 @@ import ZcodeParser
 
 type Text = T.Text
 
+data AlexaSlotType = VerbSlot | NounSlot | DirectionSlot
+  deriving (Eq, Ord)
+
 data AlexaSlot = AlexaSlot {
   slotName :: Text,
-  slotTypeName :: Text
-} deriving (Eq, Show)
+  slotType :: AlexaSlotType
+} deriving (Eq, Ord, Show)
 
 data AlexaIntent = AlexaIntent {
   intentName :: Text,
   intentSlots :: [AlexaSlot]
-} deriving (Eq, Show)
+} deriving (Eq, Ord, Show)
 
-data AlexaSlotType = AlexaSlotType {
-  alexaSlotTypeName :: Text,
-  alexaSlotTypeWords :: [Text]
+data AlexaSlotWords = AlexaSlotWords {
+  alexaSlotWordsName :: Text,
+  alexaSlotWordsOptions :: [Text]
 } deriving (Eq, Show)
 
 data AlexaUtterance = AlexaUtterance {
-  utteranceIntentName :: Text,
-  utteranceWords :: [Text]
+  utteranceWords :: [Text],
+  utteranceSlotCounts :: Map.Map AlexaSlotType Int
 } deriving (Eq, Ord, Show)
 
 data AlexaSkill = AlexaSkill {
   alexaIntents :: [AlexaIntent],
-  alexaSlotTypes :: [AlexaSlotType],
+  alexaSlotWords :: [AlexaSlotWords],
   alexaUtterances :: [AlexaUtterance]
 } deriving (Show)
 
 generateAlexaSkill :: Zcode -> AlexaSkill
 generateAlexaSkill zcode =
-  AlexaSkill
-  (intentsFromZcode zcode)
-  (slotTypesFromZcode zcode)
-  (setToList $ utterancesFromZcode zcode)
+  let
+    utterancesSet = utterancesFromZcode zcode
+    intentsSet = intentsFromUtterances utterancesSet
+  in
+    AlexaSkill
+      (setToList intentsSet)
+      (slotWordsFromZcode zcode)
+      (setToList utterancesSet)
 
-intentsFromZcode :: Zcode -> [AlexaIntent]
-intentsFromZcode zcode = []
-
-slotTypesFromZcode :: Zcode -> [AlexaSlotType]
-slotTypesFromZcode Zcode{..} = Map.foldrWithKey toSlots [] zcodeWords
+intentsFromUtterances :: Set.Set AlexaUtterance -> Set.Set AlexaIntent
+intentsFromUtterances utterances = Set.map toIntent utterances
   where
-    toSlots key value slots = (AlexaSlotType key value):slots
+    toIntent utterance = AlexaIntent
+      (intentNameForUtterance utterance)
+      (intentSlotsForUtterance utterance)
+
+slotWordsFromZcode :: Zcode -> [AlexaSlotWords]
+slotWordsFromZcode Zcode{..} = Map.foldrWithKey toSlots [] zcodeWords
+  where
+    toSlots key value slots = (AlexaSlotWords key value):slots
 
 utterancesFromZcode :: Zcode -> Set.Set AlexaUtterance
 utterancesFromZcode Zcode{..} =
@@ -57,36 +68,50 @@ utterancesFromZcode Zcode{..} =
     utterance :: [ZWord] -> AlexaUtterance
     utterance zwords =
       let (words, counts) = runState (sequence $ map toWord zwords) Map.empty
-      in AlexaUtterance (intentName counts) words
+      in AlexaUtterance words counts
 
-    countSlots :: Text -> State (Map.Map Text Int) Int
-    countSlots name = do
+    countSlots :: AlexaSlotType -> State (Map.Map AlexaSlotType Int) Int
+    countSlots slotType = do
       slotCounts <- get
-      let count = (Map.findWithDefault 0 name slotCounts) + 1
-      put $ Map.insert name count slotCounts
+      let count = (Map.findWithDefault 0 slotType slotCounts) + 1
+      put $ Map.insert slotType count slotCounts
       return count
 
-    slotName :: String -> Int -> State (Map.Map Text Int) Text
-    slotName root index =
-      return . T.pack $ "{" ++ root ++ show index ++ "}"
-
-    toWord :: ZWord -> State (Map.Map Text Int) Text
-    toWord (Verb v) = countSlots "verb" >>= slotName "Verb"
-    toWord Noun = countSlots "noun" >>= slotName "Noun"
-    toWord Direction = countSlots "dir" >>= slotName "Direction"
+    toWord :: ZWord -> State (Map.Map AlexaSlotType Int) Text
+    toWord (Verb v) = fmap (slotNameForTypeAndIndex VerbSlot) (countSlots VerbSlot)
+    toWord Noun = fmap (slotNameForTypeAndIndex NounSlot) (countSlots NounSlot)
+    toWord Direction = fmap (slotNameForTypeAndIndex DirectionSlot) (countSlots DirectionSlot)
     toWord (Fixed f) = return f
 
-    intentName :: Map.Map Text Int -> Text
-    intentName slotCounts =
-      let
-        part key str = case Map.lookup key slotCounts of
-          Nothing -> ""
-          (Just n) -> T.intercalate "" (replicate n str)
-        verbPart = part "verb" "Verb"
-        nounPart = part "noun" "Noun"
-        dirPart = part "dir" "Direction"
-      in
-        T.intercalate "" [verbPart, nounPart, dirPart, "Intent"]
+instance Show AlexaSlotType where
+  show VerbSlot = "Verb"
+  show NounSlot = "Noun"
+  show DirectionSlot = "Direction"
+
+slotNameForTypeAndIndex :: AlexaSlotType -> Int -> Text
+slotNameForTypeAndIndex slotType index =
+  T.concat ["{", showT slotType, showT index, "}"]
+
+intentNameForUtterance :: AlexaUtterance -> Text
+intentNameForUtterance AlexaUtterance{..} =
+  let
+    count slotType = case Map.lookup slotType utteranceSlotCounts of
+      Nothing -> ""
+      (Just n) -> T.concat $ replicate n (showT slotType)
+  in
+    T.concat [count VerbSlot, count NounSlot, count DirectionSlot, "Intent"]
+
+intentSlotsForUtterance :: AlexaUtterance -> [AlexaSlot]
+intentSlotsForUtterance AlexaUtterance{..} = Map.foldrWithKey toSlots [] utteranceSlotCounts
+  where
+    toSlots :: AlexaSlotType -> Int -> [AlexaSlot] -> [AlexaSlot]
+    toSlots _ 0 slots = slots
+    toSlots slotType n slots =
+      (mkSlot slotType n):(toSlots slotType (n-1) slots)
+    mkSlot t n = AlexaSlot (slotNameForTypeAndIndex t n) t
 
 setToList :: Set.Set a -> [a]
 setToList = foldr (:) []
+
+showT :: Show a => a -> Text
+showT = T.pack . show
