@@ -31,6 +31,5 @@ main = do
   Arguments{..} <- argumentParser
   preprocessor <- parsePreprocessorFile argPreprocessorPath
   zcode <- parseZcodeFile argZcodePath argInfodumpPath preprocessor
-  putStrLn $ "zcode " ++ (show zcode)
   let skill = generateAlexaSkill zcode
   putStrLn "done"
