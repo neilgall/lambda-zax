@@ -76,20 +76,20 @@ utterancesFromZcode Zcode{..} =
   where
     utterance :: [ZWord] -> AlexaUtterance
     utterance zwords =
-      let (words, counts) = runState (sequence $ map toWord zwords) Map.empty
+      let (words, counts) = runState (mapM toWord zwords) Map.empty
       in AlexaUtterance words counts
 
-    countSlots :: AlexaSlotType -> State (Map.Map AlexaSlotType Int) Int
-    countSlots slotType = do
+    newSlot :: AlexaSlotType -> State (Map.Map AlexaSlotType Int) Text
+    newSlot slotType = do
       slotCounts <- get
       let count = (Map.findWithDefault 0 slotType slotCounts) + 1
       put $ Map.insert slotType count slotCounts
-      return count
+      return $ slotNameForTypeAndIndex slotType count
 
     toWord :: ZWord -> State (Map.Map AlexaSlotType Int) Text
-    toWord (Verb v) = fmap (slotNameForTypeAndIndex VerbSlot) (countSlots VerbSlot)
-    toWord Noun = fmap (slotNameForTypeAndIndex NounSlot) (countSlots NounSlot)
-    toWord Direction = fmap (slotNameForTypeAndIndex DirectionSlot) (countSlots DirectionSlot)
+    toWord (Verb _) = newSlot VerbSlot
+    toWord Noun = newSlot NounSlot
+    toWord Direction = newSlot DirectionSlot
     toWord (Fixed f) = return f
 
 instance Show AlexaSlotType where
