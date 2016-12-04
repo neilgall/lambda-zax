@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 module AlexaSkillOutput (outputAlexaSkill) where
 
+import Control.Monad (forM_)
 import Data.Aeson
 import Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy as BS
@@ -15,8 +16,7 @@ outputAlexaSkill dir AlexaSkill{..} = do
   createDirectoryIfMissing True dir
   outputIntentSchema (combine dir "intent.schema") alexaIntents
   outputUtterances (combine dir "utterances.txt") alexaUtterances
-  mapM (outputSlotWords dir) alexaSlotWords
-  return ()
+  forM_ alexaSlotWords (outputSlotWords dir)
 
 outputIntentSchema :: FilePath -> [AlexaIntent] -> IO ()
 outputIntentSchema filepath intents =
